@@ -20,14 +20,24 @@ class TradeStoreApplicationTests {
 	private TradeStoreService tradeStoreService;
 	
 	@Test
-	public void createAndValidateTrade_ValidTrade() {
+	public void createAndValidateTrade_NewValidTrade() {
 		TradeStore tradeStore = new TradeStore("T4", 1, "CP-3", "B2", LocalDate.of(2021, 5, 20), LocalDate.now(), true);
 		tradeStoreService.createAndValidateTrade(tradeStore);
 		Assert.assertEquals(5, tradeStoreService.getAllTrades().size());
 	}
 	
 	@Test
-	public void createAndValidateTrade_lessMaturityDate() {
+	public void createAndValidateTrade_NewTradeWithSameVersion() {
+		TradeStore tradeStore = new TradeStore("T3", 3, "CP-3", "B3", LocalDate.of(2021, 5, 20), LocalDate.now(), true);
+		tradeStoreService.createAndValidateTrade(tradeStore);
+		Assert.assertTrue(tradeStoreService.getAllTrades().size()>4);
+		tradeStoreService.getAllTrades().stream().filter(t-> t.getTradeId().equals(tradeStore.getTradeId())).forEach(t-> {
+			Assert.assertTrue(t.getMaturityDate().compareTo(tradeStore.getMaturityDate())==0);
+		});
+	}
+	
+	@Test
+	public void createAndValidateTrade_NewTradeWithLessMaturityDate() {
 		TradeStore tradeStore = new TradeStore("T3", 3, "CP-3", "B2", LocalDate.of(2014, 5, 20), LocalDate.now(), true);
 		tradeStoreService.createAndValidateTrade(tradeStore);
 		Assert.assertEquals(4, tradeStoreService.getAllTrades().size());

@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.springframework.stereotype.Service;
 
@@ -25,14 +26,23 @@ public class TradeStoreService {
 		return listOfTrades;
 	}
 	
-	public void validate(TradeStore trade) {
+	public boolean validate(TradeStore trade) {
+		AtomicBoolean isValid = new AtomicBoolean();
 		listOfTrades.stream().filter(t-> t.getTradeId().equalsIgnoreCase(trade.getTradeId()))
 		.forEach(t->{
 			if(trade.getVersion()<t.getVersion()) {
 				//Rejecting the trade as received version is lower than current
 				throw new RuntimeException("Exception occured as received version is lower than current");
+			}else if(trade.getVersion()==t.getVersion()){
+				t.setCounterPartyId(trade.getCounterPartyId());
+				t.setBookId(trade.getBookId());
+				t.setMaturityDate(trade.getMaturityDate());
+				t.setCreatedDate(trade.getMaturityDate());
+				t.setExpired(trade.isExpired());
+				isValid.set(true);
 			}
 		});
+		return isValid.get();
 	}
 
 	public void createAndValidateTrade(TradeStore trade) {
@@ -40,10 +50,10 @@ public class TradeStoreService {
 			//Trade having less maturity date than today's date
 			return;
 		}
-		validate(trade);
-		ListIterator<TradeStore> iterator = listOfTrades.listIterator();
-		iterator.add(trade);
-		
+		if(!validate(trade)){
+			ListIterator<TradeStore> iterator = listOfTrades.listIterator();
+			iterator.add(trade);
+		}
 		listOfTrades.stream().filter(t-> t.getMaturityDate().compareTo(LocalDate.now())<0)
 		.forEach(t-> t.setExpired(true));
 	}
